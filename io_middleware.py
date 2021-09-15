@@ -2,6 +2,7 @@ import os
 import json
 import hashlib
 import datetime
+from re import T
 import aiohttp
 
 class IOMiddleware:
@@ -14,9 +15,17 @@ class IOMiddleware:
         self.um.pool = pool
 
     async def sign_up(self,account,password):
-        pass_salt = self.newsalt(16)
-        pass_hash = self.gethash(password,pass_salt)
-        result = await self.um.sign_up(account,pass_hash,pass_salt)
+        result = await self.api_check_account_availability(account)
+        if result:
+            pass_salt = self.newsalt(16)
+            pass_hash = self.gethash(password,pass_salt)
+            await self.um.sign_up(account,pass_hash,pass_salt)
+            return True,1
+        else:
+            return False,0
+
+    async def api_check_account_availability(self,account):
+        result = await self.um.check_account_availability(account)
         return result
 
     async def sign_in(self,account,pass_input):

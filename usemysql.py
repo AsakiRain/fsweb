@@ -1,3 +1,4 @@
+import re
 import aiomysql
 import json
 
@@ -117,3 +118,6 @@ class UseMysql:
                                         WHERE `account` = '{account}'""")
         print(f"""=====>绑定{account}的mincraft_uuid为{uuid}""")
 
+    async def check_account_availability(self,account):
+        result = await self.query(f"""SELECT 1 FROM `user` WHERE `account` = '{account}'""")
+        return not result

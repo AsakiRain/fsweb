@@ -59,11 +59,12 @@ async def signup(request):
             return response.text("账号或密码为空")
         else:
             if password == repeat_pass:
-                valid = await io_m.sign_up(account,password)
-                if valid == True:
+                result,reason = await io_m.sign_up(account,password)
+                if result == True:
                     return response.html(f"""注册成功""")
                 else:
-                    return response.html(f"""注册失败""")
+                    if reason == 0:
+                        return response.html(f"""账号已经被使用""")
             else:
                 return response.text("两次输入密码不一致")
 
