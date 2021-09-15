@@ -1,3 +1,4 @@
+from hashlib import new
 from types import resolve_bases
 import aiomysql
 import json
@@ -49,9 +50,9 @@ class UseMysql:
                 return affected_row
             else:
                 return False
-        except:
+        except Exception as e:
+            print(e)
             await conn.rollback()
-            print('内部错误')
             return False
         finally:    #finally会无条件执行，尽管return存在，但是else不会在return后面执行
             await self.returncursor(conn,cur)
@@ -86,11 +87,16 @@ class UseMysql:
     async def minecraft_init_account(self,account):
         result = await self.commit(f"""INSERT INTO `minecraft_account` (account,is_bind)
                                     VALUES ('{account}',0)""")
-        print(f"=====>创建新minceaft账号记录'{account}'，影响了{result}行。")
-    async def minecraft_store_bind_code(self,account,new_code):
-        result = await self.commit(f""""UPDATE `minecraft_account` SET `code` = '{new_code}'
-        SET runoob_title="学习 Python"
-        WHERE runoob_id=3""")
+        print(f"=====>创建新minceaft账号记录'{account}'\n=====>影响了{result}行。")
+
+    async def minecraft_store_bind_code(self,account,minecraft_account,new_code,expire_time): 
+        result = await self.commit(f"""UPDATE `minecraft_account` SET
+                                        `code` = '{new_code}',
+                                        `expire` = '{expire_time}',
+                                        `minecraft_account` = '{minecraft_account}'
+                                        WHERE `account` = '{account}'""")
+        print(f"""=====>登记账号{account}的绑定请求，\nminectaft账号为{minecraft_account},\n验证码为{new_code}，\n过期时间为{expire_time}\n=====>影响了{result}行""")
+        
     # async def minecraft_bind_check_bind_status(self,account):
     #     result = await self.query(f"""SELECT is_bind FROM minecraft_account WHERE account = '{account}'""")
     #     if result[0]:

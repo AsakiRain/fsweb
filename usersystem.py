@@ -94,13 +94,13 @@ async def api_minecraft_checkbind(request,account):
     elif result == 2:
         return response.json({'result':'success','detail':'Not registered'})
 
-@app.route('/api/v0/minecraft/bind/<account>',methods=['GET','POST'])
-async def api_minecraft_bind(request,account):
+@app.route('/api/v0/minecraft/bind/<account>/<minecraft_account>',methods=['GET','POST'])
+async def api_minecraft_bind(request,account,minecraft_account):
     if request.method == 'GET':
-        result,code =  await io_m.minecraft_bind_get(account)
-        if result == 0:
+        result,code =  await io_m.minecraft_bind_get(account,minecraft_account)
+        if result == False:
             return response.json({'result':'fail','detail':'Already binded'})
-        elif result == 1:
+        elif result == True:
             return response.json({'result':'success','detail':'Here is your code.','code':code})
 
 

@@ -1,7 +1,7 @@
 import os
 import json
 import hashlib
-
+import datetime
 class IOMiddleware:
     def __init__(self):
         self.usemysql = __import__('usemysql')
@@ -70,19 +70,33 @@ class IOMiddleware:
         #map(操作函数, 一个或多个序列, ...)，将序列中的每一项取出，运行给定的操作函数得到返回值，用其替换序列中的原值
         #在这里 lambda 匿名函数是操作函数，os.urandom(16) 是一个序列，经过操作，原序列变成每一项都只有两个字符的新序列
         #str.join(序列)，其中str是连接符号，这里不需要所以为空；序列是map函数返回的新序列
+    
+    def gettime(self,method='now',days=0,hours=0,minutes=0,seconds=0):
+        if method == 'now':
+            return ((datetime.datetime.now()).strftime("%Y-%m-%d %H:%M:%S"))
+        elif method == 'forward':
+            return  ((datetime.datetime.now()
+                    +datetime.timedelta(days=days,hours=hours,minutes=minutes,seconds=seconds))
+                    .strftime("%Y-%m-%d %H:%M:%S"))
+        elif method == 'backward':
+            return  ((datetime.datetime.now()
+                    -datetime.timedelta(days=days,hours=hours,minutes=minutes,seconds=seconds))
+                    .strftime("%Y-%m-%d %H:%M:%S"))
 
     async def minecraft_checkbind(self,account):
         result = await self.um.minecraft_checkbind(account)
         return result
-    async def minecraft_bind_get(self,account):
+
+    async def minecraft_bind_get(self,account,minecraft_account):
         result = await self.minecraft_checkbind(account)
         if result == 1:
-            return 0,None
+            return False,None,None
         if result == 2:
             await self.um.minecraft_init_account(account)
         new_code = self.newsalt(3)
-        await self.um.minecraft_store_bind_code(account,new_code)
-        return 1,new_code
+        expire_time = self.gettime(method='forward',hours=1)
+        await self.um.minecraft_store_bind_code(account,minecraft_account,new_code,expire_time)
+        return True,new_code
 
     # async def minecraft_bind_check_account_status(self,account):
     #     valid = await self.um.minecraft_bind_check_bind_status(account)
