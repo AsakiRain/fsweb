@@ -1,5 +1,3 @@
-from hashlib import new
-from types import resolve_bases
 import aiomysql
 import json
 
@@ -10,6 +8,7 @@ class UseMysql:
         self.pool = None
         with open('./config/local/usemysql.json') as f:
             self.config = json.load(f)
+
     async def initpool(self):
         __pool = await aiomysql.create_pool( #双下划线表示这是一个完全的私有变量，单下划线形式上表示私有，但是仍然可以被访问到
             host = self.config['host'],
@@ -41,7 +40,7 @@ class UseMysql:
             print(e)
         finally:    #finally会无条件执行，尽管return存在，但是else不会在return后面执行
             await self.returncursor(conn,cur)
-    
+
     async def commit(self,query,param=None):
         conn,cur = await self.getcursor()
         try:
@@ -77,6 +76,7 @@ class UseMysql:
                                     VALUES ('{token}','{account}')""")
         print(result)
         return result
+
     async def minecraft_checkbind(self,account):
         result = await self.query(f"""SELECT `is_bind` FROM `minecraft_account` WHERE `account` = '{account}'""")
         if len(result) == 1:
@@ -86,6 +86,7 @@ class UseMysql:
                 return 0
         else:
             return 2
+
     async def minecraft_init_account(self,account):
         result = await self.commit(f"""INSERT INTO `minecraft_account` (account,is_bind)
                                     VALUES ('{account}',0)""")
@@ -98,7 +99,7 @@ class UseMysql:
                                         `minecraft_account` = '{minecraft_account}'
                                         WHERE `account` = '{account}'""")
         print(f"""=====>登记账号{account}的绑定请求，\nminectaft账号为{minecraft_account},\n验证码为{new_code}，\n过期时间为{expire_time}\n=====>影响了{result}行""")
-    
+
     async def minecraft_getcode(self,account,code):
         result = await self.query(f"""SELECT `code`,`expire` FROM `minecraft_account` WHERE `account` = '{account}'""")
         if len(result) == 1:
@@ -106,7 +107,7 @@ class UseMysql:
             return True,true_code,expire_time
         else:
             return False,None,None
-    
+
     async def minecraft_store_uuid(self,account,uuid,now_time):
         result = await self.commit(f"""UPDATE `minecraft_account` SET
                                         `minecraft_uuid` = '{uuid}',
@@ -115,3 +116,4 @@ class UseMysql:
                                         `expire` = '{now_time}'
                                         WHERE `account` = '{account}'""")
         print(f"""=====>绑定{account}的mincraft_uuid为{uuid}""")
+

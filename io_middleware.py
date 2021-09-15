@@ -12,7 +12,7 @@ class IOMiddleware:
         self.um = self.usemysql.UseMysql()
         pool = await self.um.initpool()
         self.um.pool = pool
-        
+
     async def sign_up(self,account,password):
         pass_salt = self.newsalt(16)
         pass_hash = self.gethash(password,pass_salt)
@@ -39,7 +39,7 @@ class IOMiddleware:
         pass
     async def refreshtoken(self,account):
         pass
-    
+
     def gethash(self,pass_input,pass_salt):
         input_combine = pass_input + pass_salt
         hash_input = hashlib.md5()
@@ -72,7 +72,7 @@ class IOMiddleware:
         #map(操作函数, 一个或多个序列, ...)，将序列中的每一项取出，运行给定的操作函数得到返回值，用其替换序列中的原值
         #在这里 lambda 匿名函数是操作函数，os.urandom(16) 是一个序列，经过操作，原序列变成每一项都只有两个字符的新序列
         #str.join(序列)，其中str是连接符号，这里不需要所以为空；序列是map函数返回的新序列
-    
+
     def gettime(self,method='now',days=0,hours=0,minutes=0,seconds=0):
         if method == 'now':
             return ((datetime.datetime.now()).strftime("%Y-%m-%d %H:%M:%S"))
@@ -123,7 +123,7 @@ class IOMiddleware:
                 result = await resp.json()
                 print(f"""=====>成功向Mojang取得json请求体\n=====>{result}""")
         return True,result['id']
-        
+
 # async def testfunc():
 #     test = IOMiddleware()
 #     await test.init()

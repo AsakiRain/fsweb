@@ -1,12 +1,7 @@
-from hashlib import new
-from re import A, I
-from typing import ItemsView
 from sanic import Sanic, app,response
 from jinja2 import Environment,FileSystemLoader,select_autoescape
 import sys
 import json
-
-from sanic.models.handler_types import RequestMiddlewareType
 import io_middleware
 
 app = Sanic(__name__)
@@ -50,6 +45,7 @@ async def signin(request):
                 return response.html(f"""登录成功！你的token是：{token}""")
             else:
                 return response.html(f"""登陆失败！账号或密码错误""")
+
 @app.route('/signup',methods=['GET','POST'])
 async def signup(request):
     if request.method == 'GET':
@@ -58,7 +54,7 @@ async def signup(request):
         account = request.form.get('account',None)
         password = request.form.get('password',None)
         repeat_pass = request.form.get('repeat',None)
-        hidden   = request.form.get('hidden',None)
+        hidden = request.form.get('hidden',None)
         if not account or not password:
             return response.text("账号或密码为空")
         else:
@@ -70,7 +66,7 @@ async def signup(request):
                     return response.html(f"""注册失败""")
             else:
                 return response.text("两次输入密码不一致")
-    
+
 @app.route('/api/v0/signin',methods=['POST'])
 async def api_signin(request):
     account = request.form.get('account',None)
@@ -84,6 +80,7 @@ async def api_signin(request):
             return response.json({'result':'success','token':token})
         else:
             return response.json({'result':'fail','detail':'Wrong account or passwords'})
+
 @app.route('/api/v0/minecraft/checkbind/<account>',methods=['GET'])
 async def api_minecraft_checkbind(request,account):
     result = await io_m.minecraft_checkbind(account)
@@ -128,21 +125,3 @@ async def minecraft_bind(request):
 
 if __name__ == '__main__':
     app.run(host='localhost',port=8090,debug=True)
-
-# @app.route('/testexam')
-# async def testexam(request):
-#     raw_template = jinja2_env.get_template('testexam.html')
-#     a='巴拉巴拉'
-#     b='啊吧啊吧'
-#     foo='bar'
-#     rendered_template = await raw_template.render_async(a=a,b=b,foo=foo)
-#     return response.html(rendered_template)
-
-# @app.route('/testtrouble')
-# async def testtrouble(request):
-#     html =  await render_template('index.html',a='巴拉巴拉',b='啊吧啊吧',foo='bar')
-#     return response.html(html)
-# async def render_template(template_name,**kwargs):
-#     raw_template = jinja2_env.get_template(template_name)
-#     rendered_template = await raw_template.render_async(这里不会)
-#     return rendered_template
