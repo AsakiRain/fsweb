@@ -2,6 +2,8 @@ import os
 import json
 import hashlib
 import datetime
+import aiohttp
+
 class IOMiddleware:
     def __init__(self):
         self.usemysql = __import__('usemysql')
@@ -90,7 +92,7 @@ class IOMiddleware:
     async def minecraft_bind_get(self,account,minecraft_account):
         result = await self.minecraft_checkbind(account)
         if result == 1:
-            return False,None,None
+            return False,None
         if result == 2:
             await self.um.minecraft_init_account(account)
         new_code = self.newsalt(3)
@@ -98,16 +100,30 @@ class IOMiddleware:
         await self.um.minecraft_store_bind_code(account,minecraft_account,new_code,expire_time)
         return True,new_code
 
-    # async def minecraft_bind_check_account_status(self,account):
-    #     valid = await self.um.minecraft_bind_check_bind_status(account)
-    #     return valid
-    # async def minecraft_bind_send_verification(self,account):
-    #     new_code = self.newsalt(3)
-    #     # result = await self.um.minecraft_bind_store_new_code(account,new_code)
-    #     return new_code
+    async def minecraft_bind_post(self,account,minecraft_account,code):
+        result,true_code,expire_time = await self.um.minecraft_getcode(account,code)
+        if result == True:
+            now_time = datetime.datetime.strptime(self.gettime(method='now'), "%Y-%m-%d %H:%M:%S")
+            if now_time >= expire_time:
+                return 0
+            else:
+                if code == true_code:
+                    result,uuid = await self.minecraft_pull_information(minecraft_account)
+                    if result == True:
+                        await self.um.minecraft_store_uuid(account,uuid,now_time)
+                        return 1
+                    elif result == False:
+                        return 2
+        elif result == False:
+            return 0
 
-
-
+    async def minecraft_pull_information(self,minecraft_account):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f'https://api.mojang.com/users/profiles/minecraft/{minecraft_account}') as resp:
+                result = await resp.json()
+                print(f"""=====>成功向Mojang取得json请求体\n=====>{result}""")
+        return True,result['id']
+        
 # async def testfunc():
 #     test = IOMiddleware()
 #     await test.init()

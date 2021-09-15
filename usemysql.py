@@ -2,6 +2,8 @@ from hashlib import new
 from types import resolve_bases
 import aiomysql
 import json
+
+from sanic.models.handler_types import RequestMiddlewareType
 class UseMysql:
     def __init__(self):
         self.conn = None
@@ -59,7 +61,7 @@ class UseMysql:
 
     async def query_auth(self,account):
         result = await self.query(f"""select hash,salt from user where account='{account}'""")
-        if result:
+        if len(result) == 1:
             pass_hash,pass_salt = result[0]
             return pass_hash,pass_salt
         else:
@@ -96,16 +98,20 @@ class UseMysql:
                                         `minecraft_account` = '{minecraft_account}'
                                         WHERE `account` = '{account}'""")
         print(f"""=====>登记账号{account}的绑定请求，\nminectaft账号为{minecraft_account},\n验证码为{new_code}，\n过期时间为{expire_time}\n=====>影响了{result}行""")
-        
-    # async def minecraft_bind_check_bind_status(self,account):
-    #     result = await self.query(f"""SELECT is_bind FROM minecraft_account WHERE account = '{account}'""")
-    #     if result[0]:
-    #         is_valid = result[0][0]
-    #         if is_valid:
-    #             return True
-    #         else:
-    #             return False
-    #     else:
-    #         return False
-    # async def minecraft_bind_store_new_code(self,account,code):
-    #     pass
+    
+    async def minecraft_getcode(self,account,code):
+        result = await self.query(f"""SELECT `code`,`expire` FROM `minecraft_account` WHERE `account` = '{account}'""")
+        if len(result) == 1:
+            true_code,expire_time = result[0]
+            return True,true_code,expire_time
+        else:
+            return False,None,None
+    
+    async def minecraft_store_uuid(self,account,uuid,now_time):
+        result = await self.commit(f"""UPDATE `minecraft_account` SET
+                                        `minecraft_uuid` = '{uuid}',
+                                        `is_bind` = 1,
+                                        `bind_time` = '{now_time}',
+                                        `expire` = '{now_time}'
+                                        WHERE `account` = '{account}'""")
+        print(f"""=====>绑定{account}的mincraft_uuid为{uuid}""")

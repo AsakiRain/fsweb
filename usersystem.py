@@ -94,15 +94,37 @@ async def api_minecraft_checkbind(request,account):
     elif result == 2:
         return response.json({'result':'success','detail':'Not registered'})
 
-@app.route('/api/v0/minecraft/bind/<account>/<minecraft_account>',methods=['GET','POST'])
-async def api_minecraft_bind(request,account,minecraft_account):
+@app.route('/api/v0/minecraft/bind',methods=['GET','POST'])
+async def api_minecraft_bind(request):
     if request.method == 'GET':
-        result,code =  await io_m.minecraft_bind_get(account,minecraft_account)
-        if result == False:
-            return response.json({'result':'fail','detail':'Already binded'})
-        elif result == True:
-            return response.json({'result':'success','detail':'Here is your code.','code':code})
+        account = request.args.get('account',None)
+        minecraft_account = request.args.get('minecraft_account',None)
+        if not all([account,minecraft_account]):
+            return response.json({'result':'fail','detail':'Missing arguments.'})
+        else:
+            result,code =  await io_m.minecraft_bind_get(account,minecraft_account)
+            if result == False:
+                return response.json({'result':'fail','detail':'Already binded'})
+            elif result == True:
+                return response.json({'result':'success','detail':'Here is your code.','code':code})
+    if request.method == 'POST':
+        account = request.form.get('account',None)
+        minecraft_account = request.form.get('minecraft_account',None)
+        code = request.form.get('code',None)
+        if not all([account,minecraft_account,code]):
+            return response.json({'result':'fail','detail':'Missing arguments.'})
+        else:
+            result = await io_m.minecraft_bind_post(account,minecraft_account,code)
+            if result == 1:
+                return response.json({'result':'success','detail':f'Successfully bind {minecraft_account} to {account}!'})
+            if result == 0:
+                return response.json({'result':'fail','detail':'Code not exist or is expired.'})
+            if result == 2:
+                return response.json({'result':'fail','detail':'Cannot pull your information from Mojang\'s server.'})
 
+@app.route('/minecraft/bind',methods=['GET'])
+async def minecraft_bind(request):
+    return response.html(await render_template('minecraft_bind.html',notice = 'HelloWorld powered by Sanic'))
 
 if __name__ == '__main__':
     app.run(host='localhost',port=8090,debug=True)
