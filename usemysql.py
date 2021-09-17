@@ -42,6 +42,12 @@ class UseMysql:
             await cur.execute(query,param)
             result = await cur.fetchall()
             await conn.commit()
+            #####################################################
+            #                                                   #
+            #       即使是query也一定要commit！！！               #   
+            #       不然conn会缓存数据，就算归还了也不行！！！     #
+            #                                                   #
+            #####################################################
             if len(result) == 0:
                 return False
             else:
