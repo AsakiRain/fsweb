@@ -1,6 +1,8 @@
 import re
 import aiomysql
 import json
+from attr import attr
+from jinja2.filters import F
 
 from sanic.models.handler_types import RequestMiddlewareType
 class UseMysql:
@@ -72,11 +74,15 @@ class UseMysql:
                  VALUES ('{account}','{pass_hash}','{pass_salt}')""")
         return result
 
-    async def storetoken(self,account,token):
-        result = await self.commit(f"""INSERT INTO token (token,account)
-                                    VALUES ('{token}','{account}')""")
-        print(result)
-        return result
+    async def storetoken(self,account,token,expire_time,type):
+        if type == 'at':
+            result = await self.commit(f"""INSERT INTO `auth` (`token`,`account`,`expire`,`type`)
+                                        VALUES ('{token}','{account}','{expire_time}','{type}')""")
+        if type == 'dt':
+            expire_time = False
+            result = await self.commit(f"""INSERT INTO `auth` (`token`,`account`,`type`)
+                                        VALUES ('{token}','{account}','{type}')""")
+        print(f"=====>储存{account}的{type}-token：{token}\n过期时间为{expire_time}\n=====>影响了{result}行")
 
     async def minecraft_checkbind(self,account):
         result = await self.query(f"""SELECT `is_bind` FROM `minecraft_account` WHERE `account` = '{account}'""")
@@ -121,3 +127,6 @@ class UseMysql:
     async def check_account_availability(self,account):
         result = await self.query(f"""SELECT 1 FROM `user` WHERE `account` = '{account}'""")
         return not result
+
+    async def check_token(self,account,token,now_time):
+        pass

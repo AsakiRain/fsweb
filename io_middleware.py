@@ -35,22 +35,25 @@ class IOMiddleware:
         else:
             hash_output = self.gethash(pass_input,pass_salt)
             if hash_output == pass_hash:
-                my_token = await self.gettoken(account)
-                return True,my_token
+                at = await self.gettoken(account,'at')
+                dt = await self.gettoken(account,'dt')
+                return True,{'at':at,'dt':dt}
             else:
                 return False,False
 
-    async def gettoken(self,account):
-        my_token = self.newsalt(32)
-        await self.um.storetoken(account,my_token)
-        return my_token
-    async def checktoken(self,account):
-        pass
-    async def refreshtoken(self,account):
-        pass
+    async def check_auth_status(self,account,token):
+        now_time = self.gettime(method='now')
+        result = await self.um.check_token(account,token,now_time)
+        return result
 
-    def gethash(self,pass_input,pass_salt):
-        input_combine = pass_input + pass_salt
+    async def gettoken(self,account,type):
+        token = self.newsalt(16)
+        expire_time = self.gettime(method='forward',days=7)
+        await self.um.storetoken(account,token,expire_time,type)
+        return token
+
+    def gethash(self,input,salt):
+        input_combine = input + salt
         hash_input = hashlib.md5()
         hash_input.update(input_combine.encode("utf8"))
         hash_output = hash_input.hexdigest()

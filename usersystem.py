@@ -42,7 +42,14 @@ async def signin(request):
         else:
             valid,token = await io_m.sign_in(account,password)
             if valid == True:
-                return response.html(f"""登录成功！你的token是：{token}""")
+                resp = response.text("There are cookies up in this response")
+                resp.cookies['at'] = token['at']
+                resp.cookies['at']['path'] = '/'
+                resp.cookies['at']['httponly'] = True
+                resp.cookies['dt'] = token['dt']
+                resp.cookies['dt']['path'] = '/'
+                resp.cookies['dt']['httponly'] = True
+                return resp
             else:
                 return response.html(f"""登陆失败！账号或密码错误""")
 
@@ -78,7 +85,7 @@ async def api_signin(request):
     else:
         valid,token = await io_m.sign_in(account,password)
         if valid == True:
-            return response.json({'result':'success','token':token})
+            return response.json({'result':'success','at':token['at'],'dt':token['dt']})
         else:
             return response.json({'result':'fail','detail':'Wrong account or passwords'})
 
@@ -123,6 +130,11 @@ async def api_minecraft_bind(request):
 @app.route('/minecraft/bind',methods=['GET'])
 async def minecraft_bind(request):
     return response.html(await render_template('minecraft_bind.html',notice = 'HelloWorld powered by Sanic'))
+
+@app.route('/user/<account>',methods=['GET'])
+async def user_profile(request,account):
+    at = request.cookies.get("at",None)
+    result = await io_m.check_auth_status(account,at)
 
 if __name__ == '__main__':
     app.run(host='localhost',port=8090,debug=True)
