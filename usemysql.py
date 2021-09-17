@@ -1,3 +1,4 @@
+from mmap import ACCESS_COPY
 import re
 import aiomysql
 import json
@@ -24,6 +25,7 @@ class UseMysql:
             maxsize= 5, 
         )
         return __pool
+
     async def getcursor(self):
         conn = await self.pool.acquire()
         cur = await conn.cursor()
@@ -38,8 +40,14 @@ class UseMysql:
         conn,cur = await self.getcursor()
         try:
             await cur.execute(query,param)
-            return await cur.fetchall()
+            result = await cur.fetchall()
+            await conn.commit()
+            if len(result) == 0:
+                return False
+            else:
+                return result
         except Exception as e:
+            print(f"执行语句{query}出错")
             print(e)
         finally:    #finally会无条件执行，尽管return存在，但是else不会在return后面执行
             await self.returncursor(conn,cur)
@@ -55,6 +63,7 @@ class UseMysql:
             else:
                 return False
         except Exception as e:
+            print(f"执行语句{query}出错")
             print(e)
             await conn.rollback()
             return False
@@ -63,7 +72,7 @@ class UseMysql:
 
     async def query_auth(self,account):
         result = await self.query(f"""select hash,salt from user where account='{account}'""")
-        if len(result) == 1:
+        if result:
             pass_hash,pass_salt = result[0]
             return pass_hash,pass_salt
         else:
@@ -72,21 +81,22 @@ class UseMysql:
     async def sign_up(self,account,pass_hash,pass_salt):
         result = await self.commit(f"""INSERT INTO user (account,hash,salt)
                  VALUES ('{account}','{pass_hash}','{pass_salt}')""")
-        return result
 
-    async def storetoken(self,account,token,expire_time,type):
-        if type == 'at':
-            result = await self.commit(f"""INSERT INTO `auth` (`token`,`account`,`expire`,`type`)
-                                        VALUES ('{token}','{account}','{expire_time}','{type}')""")
-        if type == 'dt':
-            expire_time = False
-            result = await self.commit(f"""INSERT INTO `auth` (`token`,`account`,`type`)
-                                        VALUES ('{token}','{account}','{type}')""")
-        print(f"=====>储存{account}的{type}-token：{token}\n过期时间为{expire_time}\n=====>影响了{result}行")
+    async def storetoken(self,account,at,expire_time,dt):
+        result = await self.query(f"""SELECT 1 FROM `auth` WHERE `account` = '{account}' AND `dt` = '{dt}'""")
+        if not result:
+            result = await self.commit(f"""INSERT INTO `auth` (`at`,`account`,`expire`,`dt`)
+                                            VALUES ('{at}','{account}','{expire_time}','{dt}')""")
+        else:
+            result = await self.commit(f"""UPDATE `auth` SET
+                                        `at` = '{at}',
+                                        `expire` = '{expire_time}'
+                                        WHERE `account` = '{account}' AND `dt` = '{dt}'""")
+        print(f"=====>储存{account}在终端{dt}上的token：{at}\n过期时间为{expire_time}\n=====>影响了{result}行")
 
     async def minecraft_checkbind(self,account):
         result = await self.query(f"""SELECT `is_bind` FROM `minecraft_account` WHERE `account` = '{account}'""")
-        if len(result) == 1:
+        if result:
             if result[0][0] == 1:
                 return 1
             else:
@@ -109,7 +119,7 @@ class UseMysql:
 
     async def minecraft_getcode(self,account,code):
         result = await self.query(f"""SELECT `code`,`expire` FROM `minecraft_account` WHERE `account` = '{account}'""")
-        if len(result) == 1:
+        if result:
             true_code,expire_time = result[0]
             return True,true_code,expire_time
         else:
@@ -128,5 +138,7 @@ class UseMysql:
         result = await self.query(f"""SELECT 1 FROM `user` WHERE `account` = '{account}'""")
         return not result
 
-    async def check_token(self,account,token,now_time):
-        pass
+    async def get_at(self,dt):
+        result = await self.query(f"""SELECT `at`,`expire` FROM `auth` WHERE `dt` = '{dt}'""")
+        print(f"get_at()的结果：{result}")
+        return result

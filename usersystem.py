@@ -31,6 +31,12 @@ async def index(request):
 
 @app.route('/signin',methods=['GET','POST'])
 async def signin(request):
+    at = request.cookies.get("at",None)
+    dt = request.cookies.get('dt',None)
+    if all([at,dt]):
+        auth_status = await io_m.check_auth_status(at,dt)
+        if auth_status == 1:
+            return response.redirect("""/account""")   
     if request.method == 'GET':
         return response.html(await render_template('signin.html'))
     elif request.method == 'POST':
@@ -75,20 +81,6 @@ async def signup(request):
             else:
                 return response.text("两次输入密码不一致")
 
-@app.route('/api/v0/signin',methods=['POST'])
-async def api_signin(request):
-    account = request.form.get('account',None)
-    password = request.form.get('password',None)
-    hidden   = request.form.get('hidden',None)
-    if not account or not password:
-        return response.json({'result':'fail','detail':'Empty account or password'})
-    else:
-        valid,token = await io_m.sign_in(account,password)
-        if valid == True:
-            return response.json({'result':'success','at':token['at'],'dt':token['dt']})
-        else:
-            return response.json({'result':'fail','detail':'Wrong account or passwords'})
-
 @app.route('/api/v0/minecraft/checkbind/<account>',methods=['GET'])
 async def api_minecraft_checkbind(request,account):
     result = await io_m.minecraft_checkbind(account)
@@ -131,10 +123,17 @@ async def api_minecraft_bind(request):
 async def minecraft_bind(request):
     return response.html(await render_template('minecraft_bind.html',notice = 'HelloWorld powered by Sanic'))
 
-@app.route('/user/<account>',methods=['GET'])
-async def user_profile(request,account):
+@app.route('/account',methods=['GET'])
+async def account(request):
     at = request.cookies.get("at",None)
-    result = await io_m.check_auth_status(account,at)
+    dt = request.cookies.get('dt',None)
+    if not all([at,dt]):
+        return response.redirect("""/signin""")
+    result = await io_m.check_auth_status(at,dt)
+    if result == 1:
+        return response.html(await render_template('account.html',notice='Successfully authorized'))
+    else:
+        return response.text(f'code:{result}')
 
 if __name__ == '__main__':
     app.run(host='localhost',port=8090,debug=True)

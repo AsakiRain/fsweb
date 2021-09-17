@@ -4,6 +4,9 @@ import hashlib
 import datetime
 from re import T
 import aiohttp
+from aiohttp.helpers import NO_EXTENSIONS, TOKEN, is_ip_address
+from jinja2.filters import do_title
+from sanic import response
 
 class IOMiddleware:
     def __init__(self):
@@ -35,22 +38,33 @@ class IOMiddleware:
         else:
             hash_output = self.gethash(pass_input,pass_salt)
             if hash_output == pass_hash:
-                at = await self.gettoken(account,'at')
-                dt = await self.gettoken(account,'dt')
+                dt = self.newsalt(8)
+                at = await self.gettoken(account,dt)
                 return True,{'at':at,'dt':dt}
             else:
                 return False,False
 
-    async def check_auth_status(self,account,token):
-        now_time = self.gettime(method='now')
-        result = await self.um.check_token(account,token,now_time)
-        return result
+    async def check_auth_status(self,at,dt):
+        now_time = datetime.datetime.strptime(self.gettime(method='now'), "%Y-%m-%d %H:%M:%S")
+        result = await self.um.get_at(dt)
+        if result:
+                att,expire_time = result[0]
+                print(f"""=====>对于终端{dt}：\n提供的token为{at}\n实际的token为{att}\n过期时间为{expire_time}\n现在时间{now_time}""")
+                if at == att:
+                    if expire_time > now_time:
+                        return 1
+                    else:
+                        return 0
+                else:
+                    return 3
+        else:
+            return 2
 
-    async def gettoken(self,account,type):
-        token = self.newsalt(16)
+    async def gettoken(self,account,dt):
+        at = self.newsalt(16)
         expire_time = self.gettime(method='forward',days=7)
-        await self.um.storetoken(account,token,expire_time,type)
-        return token
+        await self.um.storetoken(account,at,expire_time,dt)
+        return at
 
     def gethash(self,input,salt):
         input_combine = input + salt
