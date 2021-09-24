@@ -133,7 +133,7 @@ async def account(request):
     if result == 1:
         return response.html(await render_template('account.html',notice='Successfully authorized'))
     else:
-        return response.text(f'code:{result}')
+        return response.redirect("""/signin""")
 
 if __name__ == '__main__':
     app.run(host='localhost',port=8090,debug=True)

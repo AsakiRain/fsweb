@@ -2,11 +2,7 @@ import os
 import json
 import hashlib
 import datetime
-from re import T
 import aiohttp
-from aiohttp.helpers import NO_EXTENSIONS, TOKEN, is_ip_address
-from jinja2.filters import do_title
-from sanic import response
 
 class IOMiddleware:
     def __init__(self):
@@ -149,13 +145,3 @@ class IOMiddleware:
                 result = await resp.json()
                 print(f"""=====>成功向Mojang取得json请求体\n=====>{result}""")
         return True,result['id']
-
-# async def testfunc():
-#     test = IOMiddleware()
-#     await test.init()
-#     #print(await test.sign_up("asakirain","ssr129631"))
-#     # print(await test.sign_in("asakirain","ssr129631"))
-#     #print(await test.gettoken(account='asakirain'))
-    
-# loop = asyncio.get_event_loop()
-# loop.run_until_complete(testfunc())
